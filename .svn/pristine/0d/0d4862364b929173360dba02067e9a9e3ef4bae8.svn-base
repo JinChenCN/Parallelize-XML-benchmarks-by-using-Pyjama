@@ -1,0 +1,34 @@
+package spec.benchmarks.xml.transform;//#GEN#[-1]#PJ#
+import pj.parser.ast.visitor.DummyClassToDetermineVariableType;//#GEN#[3]#PJ#
+import pj.*;//#GEN#[4]#PJ#
+import java.io.File;//#GEN#[5]#PJ#
+import java.io.FileInputStream;//#GEN#[6]#PJ#
+import java.io.IOException;//#GEN#[7]#PJ#
+import javax.xml.parsers.ParserConfigurationException;//#GEN#[8]#PJ#
+import javax.xml.transform.Source;//#GEN#[9]#PJ#
+import javax.xml.transform.Templates;//#GEN#[10]#PJ#
+import javax.xml.transform.Transformer;//#GEN#[11]#PJ#
+import javax.xml.transform.TransformerConfigurationException;//#GEN#[12]#PJ#
+import javax.xml.transform.TransformerException;//#GEN#[13]#PJ#
+import javax.xml.transform.TransformerFactory;//#GEN#[14]#PJ#
+import javax.xml.transform.stream.StreamResult;//#GEN#[15]#PJ#
+import javax.xml.transform.sax.SAXSource;//#GEN#[16]#PJ#
+import javax.xml.transform.dom.DOMSource;//#GEN#[17]#PJ#
+import org.xml.sax.SAXException;//#GEN#[18]#PJ#
+import spec.benchmarks.xml.XMLBenchmark;//#GEN#[19]#PJ#
+import spec.harness.Constants;//#GEN#[20]#PJ#
+import spec.harness.Context;//#GEN#[21]#PJ#
+import spec.harness.Launch;//#GEN#[22]#PJ#
+import spec.harness.Util;//#GEN#[23]#PJ#
+import spec.harness.results.BenchmarkResult;//#GEN#[24]#PJ#
+import spec.io.FileCache;//#GEN#[25]#PJ#
+import spec.io.FileCache.CachedFile;//#GEN#[26]#PJ#
+import java.util.Properties;//#GEN#[27]#PJ#
+//#GEN#[27]#PJ#
+import pi.reductions.Reducible;//#GEN#[27]#PJ#
+import java.util.*;//#GEN#[27]#PJ#
+import spec.benchmarks.xml.transform.*;//#GEN#[27]#PJ#
+public class _ompWorkSharedUserCode_Main2_variables {//#GEN#[27]#PJ#
+//#GEN#[27]#PJ#
+//#GEN#[27]#PJ#
+}//#GEN#[27]#PJ#

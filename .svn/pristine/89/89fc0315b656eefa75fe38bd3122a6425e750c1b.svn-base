@@ -1,0 +1,612 @@
+package spec.benchmarks.xml.validation;//####[1]####
+//####[1]####
+import pj.parser.ast.visitor.DummyClassToDetermineVariableType;//####[3]####
+import pt.runtime.*;//####[4]####
+import pj.Pyjama;//####[5]####
+import pj.PJPackageOnly;//####[6]####
+import pj.UniqueThreadIdGeneratorForOpenMP;//####[7]####
+import pi.ParIteratorFactory;//####[8]####
+import pi.ParIterator;//####[9]####
+import pi.reductions.Reducible;//####[10]####
+import pi.reductions.Reduction;//####[11]####
+import java.util.concurrent.atomic.*;//####[12]####
+import java.util.concurrent.*;//####[13]####
+import java.awt.EventQueue;//####[14]####
+import java.util.concurrent.ExecutorService;//####[15]####
+import java.util.concurrent.Executors;//####[16]####
+import java.util.concurrent.TimeUnit;//####[17]####
+import javax.swing.SwingUtilities;//####[18]####
+import pj.parser.ast.visitor.DummyClassToDetermineVariableType;//####[19]####
+import pj.*;//####[20]####
+import java.io.File;//####[21]####
+import java.io.IOException;//####[22]####
+import java.util.concurrent.atomic.AtomicInteger;//####[23]####
+import java.util.Arrays;//####[24]####
+import javax.xml.XMLConstants;//####[25]####
+import javax.xml.parsers.ParserConfigurationException;//####[26]####
+import javax.xml.transform.Source;//####[27]####
+import javax.xml.transform.stream.StreamSource;//####[28]####
+import javax.xml.validation.Schema;//####[29]####
+import javax.xml.validation.SchemaFactory;//####[30]####
+import javax.xml.validation.Validator;//####[31]####
+import org.xml.sax.SAXException;//####[32]####
+import spec.harness.Constants;//####[33]####
+import spec.harness.Context;//####[34]####
+import spec.harness.Launch;//####[35]####
+import spec.harness.Util;//####[36]####
+import spec.harness.results.BenchmarkResult;//####[37]####
+import spec.io.FileCache;//####[38]####
+import spec.io.FileCache.CachedFile;//####[39]####
+import spec.benchmarks.xml.XMLBenchmark;//####[40]####
+import pi.reductions.Reducible;//####[42]####
+import java.util.*;//####[43]####
+//####[43]####
+//-- ParaTask related imports//####[43]####
+import pt.runtime.*;//####[43]####
+import java.util.concurrent.ExecutionException;//####[43]####
+import java.util.concurrent.locks.*;//####[43]####
+import java.lang.reflect.*;//####[43]####
+import pt.runtime.GuiThread;//####[43]####
+import java.util.concurrent.BlockingQueue;//####[43]####
+import java.util.ArrayList;//####[43]####
+import java.util.List;//####[43]####
+//####[43]####
+public class Main extends XMLBenchmark {//####[45]####
+    static{ParaTask.init();}//####[45]####
+    /*  ParaTask helper method to access private/protected slots *///####[45]####
+    public void __pt__accessPrivateSlot(Method m, Object instance, TaskID arg, Object interResult ) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {//####[45]####
+        if (m.getParameterTypes().length == 0)//####[45]####
+            m.invoke(instance);//####[45]####
+        else if ((m.getParameterTypes().length == 1))//####[45]####
+            m.invoke(instance, arg);//####[45]####
+        else //####[45]####
+            m.invoke(instance, arg, interResult);//####[45]####
+    }//####[45]####
+//####[46]####
+    private static final int XSD_NUMBER = 6;//####[46]####
+//####[46]####
+    private static FileCache.CachedFile[] allInstanceBytes;//####[46]####
+//####[46]####
+    private static FileCache.CachedFile[] allSchemaBytes;//####[46]####
+//####[46]####
+    private static Validator[][][] allValidators;//####[46]####
+//####[46]####
+    private static int THREADSNUM = 4;//####[46]####
+//####[46]####
+    private static int CHUNCK_NUM = 4;//####[46]####
+//####[46]####
+    public static String testType() {//####[46]####
+        {//####[46]####
+            return MULTI;//####[47]####
+        }//####[48]####
+    }//####[49]####
+//####[50]####
+    private static ArrayList<ParIterator<?>> _omp_piVarContainer = new ArrayList<ParIterator<?>>();//####[50]####
+//####[51]####
+    private static AtomicBoolean _holderForPIFirst = new AtomicBoolean(false);//####[51]####
+//####[53]####
+    private static String[] schemaNames = { "validation_input.xsd", "periodic_table.xsd", "play.xsd", "structure.xsd", "po.xsd", "personal.xsd" };//####[53]####
+//####[53]####
+    private static String[] instanceNames = { "validation_input.xml", "periodicxsd.xml", "much_adoxsd.xml", "structure.xml", "po.xml", "personal.xml" };//####[53]####
+//####[53]####
+    private static int loops[] = { 1, 5, 3, 52, 647, 419 };//####[53]####
+//####[53]####
+    public static void setupBenchmark() {//####[53]####
+        {//####[53]####
+            String dirName = Util.getProperty(Constants.XML_VALIDATION_INPUT_DIR_PROP, null);//####[54]####
+            try {//####[55]####
+                allInstanceBytes = new FileCache.CachedFile[XSD_NUMBER];//####[56]####
+                FileCache cache = Context.getFileCache();//####[57]####
+                for (int i = 0; i < XSD_NUMBER; i++) //####[58]####
+                {//####[59]####
+                    String name = getFullName(Main.class, dirName, instanceNames[i]);//####[60]####
+                    allInstanceBytes[i] = cache.new CachedFile(name);//####[61]####
+                    allInstanceBytes[i].cache();//####[62]####
+                }//####[63]####
+                allSchemaBytes = new FileCache.CachedFile[XSD_NUMBER];//####[64]####
+                for (int i = 0; i < XSD_NUMBER; i++) //####[65]####
+                {//####[66]####
+                    String name = getFullName(Main.class, dirName, schemaNames[i]);//####[67]####
+                    allSchemaBytes[i] = cache.new CachedFile(name);//####[68]####
+                    allSchemaBytes[i].cache();//####[69]####
+                }//####[70]####
+                setupValidators(dirName);//####[71]####
+            } catch (IOException e) {//####[72]####
+                e.printStackTrace(Context.getOut());//####[73]####
+            }//####[74]####
+        }//####[75]####
+    }//####[76]####
+//####[78]####
+    private static void setupValidators(String dirName) {//####[78]####
+        {//####[78]####
+            int threads = Launch.currentNumberBmThreads;//####[79]####
+            allValidators = new Validator[threads][XSD_NUMBER][];//####[80]####
+            try {//####[81]####
+                SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);//####[82]####
+                sf.setErrorHandler(null);//####[83]####
+                for (int i = 0; i < XSD_NUMBER; i++) //####[84]####
+                {//####[85]####
+                    String xsdFilename = getFullName(Main.class, dirName, schemaNames[i]);//####[86]####
+                    File tempURI = new File(xsdFilename);//####[87]####
+                    Schema precompSchema;//####[88]####
+                    if (tempURI.isAbsolute()) //####[89]####
+                    {//####[90]####
+                        precompSchema = sf.newSchema(new StreamSource(allSchemaBytes[i].getStream(), tempURI.toURI().toString()));//####[91]####
+                    } else {//####[92]####
+                        precompSchema = sf.newSchema(new StreamSource(allSchemaBytes[i].getStream(), xsdFilename));//####[93]####
+                    }//####[94]####
+                    for (int j = 0; j < threads; j++) //####[95]####
+                    {//####[96]####
+                        Validator[] validatorForLoops = new Validator[CHUNCK_NUM];//####[97]####
+                        for (int k = 0; k < CHUNCK_NUM; k++) //####[98]####
+                        {//####[99]####
+                            validatorForLoops[k] = precompSchema.newValidator();//####[100]####
+                        }//####[101]####
+                        allValidators[j][i] = validatorForLoops;//####[102]####
+                    }//####[103]####
+                }//####[104]####
+            } catch (SAXException e) {//####[105]####
+                e.printStackTrace();//####[106]####
+            } catch (Exception e) {//####[107]####
+                e.printStackTrace();//####[108]####
+            }//####[109]####
+        }//####[110]####
+    }//####[111]####
+//####[113]####
+    private Validator[][] schemaBoundValidator;//####[113]####
+//####[113]####
+    public Main(BenchmarkResult bmResult, int threadId) {//####[113]####
+        super(bmResult, threadId);//####[114]####
+        schemaBoundValidator = allValidators[threadId - 1];//####[115]####
+    }//####[116]####
+//####[116]####
+    public void harnessMain() {//####[116]####
+        {//####[116]####
+            try {//####[117]####
+                long start = System.currentTimeMillis();//####[118]####
+                executeWorkload();//####[119]####
+                long time = System.currentTimeMillis() - start;//####[120]####
+                System.out.println("PJ Parallel xml validation has taken  " + (time / 1000.0) + " seconds.");//####[121]####
+            } catch (Exception e) {//####[122]####
+                e.printStackTrace(Context.getOut());//####[123]####
+            }//####[124]####
+        }//####[125]####
+    }//####[126]####
+//####[128]####
+    public static void main(String[] args) throws Exception {//####[128]####
+        Pyjama.init();//####[129]####
+        {//####[130]####
+            runSimple(Main.class, args);//####[131]####
+        }//####[132]####
+    }//####[133]####
+//####[135]####
+    private void executeWorkload() throws ParserConfigurationException, IOException, SAXException {//####[135]####
+        {//####[135]####
+            if (Pyjama.insideParallelRegion()) //####[137]####
+            {//####[137]####
+                {//####[139]####
+                    for (int i = 0; i < XSD_NUMBER; i = i + 1) //####[140]####
+                    {//####[141]####
+                        Context.getOut().println("Validating " + instanceNames[i]);//####[142]####
+                        try {//####[143]####
+                            doValidationTests(loops[i], allInstanceBytes[i], schemaBoundValidator[i]);//####[144]####
+                        } catch (SAXException e) {//####[145]####
+                            e.printStackTrace();//####[146]####
+                        } catch (Exception e) {//####[147]####
+                            e.printStackTrace();//####[148]####
+                        }//####[149]####
+                    }//####[150]####
+                }//####[151]####
+            } else {//####[152]####
+                PJPackageOnly.setThreadCountCurrentParallelRegion(Pyjama.omp_get_num_threads());//####[154]####
+                _omp__parallelRegionVarHolderClass_Main0 _omp__parallelRegionVarHolderInstance_0 = new _omp__parallelRegionVarHolderClass_Main0();//####[157]####
+                PJPackageOnly.setMasterThread(Thread.currentThread());//####[160]####
+                TaskID _omp__parallelRegionTaskID_0 = _ompParallelRegion_0(_omp__parallelRegionVarHolderInstance_0);//####[161]####
+                __pt___ompParallelRegion_0(_omp__parallelRegionVarHolderInstance_0);//####[162]####
+                try {//####[163]####
+                    _omp__parallelRegionTaskID_0.waitTillFinished();//####[163]####
+                } catch (Exception __pt__ex) {//####[163]####
+                    __pt__ex.printStackTrace();//####[163]####
+                }//####[163]####
+                PJPackageOnly.setMasterThread(null);//####[165]####
+                _holderForPIFirst.set(true);//####[166]####
+                PJPackageOnly.setThreadCountCurrentParallelRegion(1);//####[168]####
+            }//####[169]####
+        }//####[172]####
+    }//####[173]####
+//####[174]####
+    private AtomicBoolean _imFirst_2 = new AtomicBoolean(true);//####[174]####
+//####[175]####
+    private AtomicInteger _imFinishedCounter_2 = new AtomicInteger(0);//####[175]####
+//####[176]####
+    private CountDownLatch _waitBarrier_2 = new CountDownLatch(1);//####[176]####
+//####[177]####
+    private CountDownLatch _waitBarrierAfter_2 = new CountDownLatch(1);//####[177]####
+//####[178]####
+    private ParIterator<Integer> _pi_2 = null;//####[178]####
+//####[179]####
+    private Integer _lastElement_2 = null;//####[179]####
+//####[180]####
+    private _ompWorkSharedUserCode_Main2_variables _ompWorkSharedUserCode_Main2_variables_instance = null;//####[180]####
+//####[181]####
+    private void _ompWorkSharedUserCode_Main2(_ompWorkSharedUserCode_Main2_variables __omp_vars) {//####[181]####
+        Integer i;//####[183]####
+        while (_pi_2.hasNext()) //####[184]####
+        {//####[184]####
+            i = _pi_2.next();//####[185]####
+            {//####[187]####
+                Context.getOut().println("Validating " + instanceNames[i]);//####[188]####
+                try {//####[189]####
+                    doValidationTests(loops[i], allInstanceBytes[i], schemaBoundValidator[i]);//####[190]####
+                } catch (SAXException e) {//####[191]####
+                    e.printStackTrace();//####[192]####
+                } catch (Exception e) {//####[193]####
+                    e.printStackTrace();//####[194]####
+                }//####[195]####
+            }//####[196]####
+        }//####[197]####
+    }//####[199]####
+//####[203]####
+    private static volatile Method __pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_method = null;//####[203]####
+    private synchronized static void __pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_ensureMethodVarSet() {//####[203]####
+        if (__pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_method == null) {//####[203]####
+            try {//####[203]####
+                __pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_method = ParaTaskHelper.getDeclaredMethod(new ParaTaskHelper.ClassGetter().getCurrentClass(), "__pt___ompParallelRegion_0", new Class[] {//####[203]####
+                    _omp__parallelRegionVarHolderClass_Main0.class//####[203]####
+                });//####[203]####
+            } catch (Exception e) {//####[203]####
+                e.printStackTrace();//####[203]####
+            }//####[203]####
+        }//####[203]####
+    }//####[203]####
+    private TaskIDGroup<Void> _ompParallelRegion_0(_omp__parallelRegionVarHolderClass_Main0 __omp_vars) {//####[203]####
+        //-- execute asynchronously by enqueuing onto the taskpool//####[203]####
+        return _ompParallelRegion_0(__omp_vars, new TaskInfo());//####[203]####
+    }//####[203]####
+    private TaskIDGroup<Void> _ompParallelRegion_0(_omp__parallelRegionVarHolderClass_Main0 __omp_vars, TaskInfo taskinfo) {//####[203]####
+        // ensure Method variable is set//####[203]####
+        if (__pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_method == null) {//####[203]####
+            __pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_ensureMethodVarSet();//####[203]####
+        }//####[203]####
+        taskinfo.setParameters(__omp_vars);//####[203]####
+        taskinfo.setMethod(__pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_method);//####[203]####
+        taskinfo.setInstance(this);//####[203]####
+        return TaskpoolFactory.getTaskpool().enqueueMulti(taskinfo, Pyjama.omp_get_num_threads() - 1);//####[203]####
+    }//####[203]####
+    private TaskIDGroup<Void> _ompParallelRegion_0(TaskID<_omp__parallelRegionVarHolderClass_Main0> __omp_vars) {//####[203]####
+        //-- execute asynchronously by enqueuing onto the taskpool//####[203]####
+        return _ompParallelRegion_0(__omp_vars, new TaskInfo());//####[203]####
+    }//####[203]####
+    private TaskIDGroup<Void> _ompParallelRegion_0(TaskID<_omp__parallelRegionVarHolderClass_Main0> __omp_vars, TaskInfo taskinfo) {//####[203]####
+        // ensure Method variable is set//####[203]####
+        if (__pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_method == null) {//####[203]####
+            __pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_ensureMethodVarSet();//####[203]####
+        }//####[203]####
+        taskinfo.setTaskIdArgIndexes(0);//####[203]####
+        taskinfo.addDependsOn(__omp_vars);//####[203]####
+        taskinfo.setParameters(__omp_vars);//####[203]####
+        taskinfo.setMethod(__pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_method);//####[203]####
+        taskinfo.setInstance(this);//####[203]####
+        return TaskpoolFactory.getTaskpool().enqueueMulti(taskinfo, Pyjama.omp_get_num_threads() - 1);//####[203]####
+    }//####[203]####
+    private TaskIDGroup<Void> _ompParallelRegion_0(BlockingQueue<_omp__parallelRegionVarHolderClass_Main0> __omp_vars) {//####[203]####
+        //-- execute asynchronously by enqueuing onto the taskpool//####[203]####
+        return _ompParallelRegion_0(__omp_vars, new TaskInfo());//####[203]####
+    }//####[203]####
+    private TaskIDGroup<Void> _ompParallelRegion_0(BlockingQueue<_omp__parallelRegionVarHolderClass_Main0> __omp_vars, TaskInfo taskinfo) {//####[203]####
+        // ensure Method variable is set//####[203]####
+        if (__pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_method == null) {//####[203]####
+            __pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_ensureMethodVarSet();//####[203]####
+        }//####[203]####
+        taskinfo.setQueueArgIndexes(0);//####[203]####
+        taskinfo.setIsPipeline(true);//####[203]####
+        taskinfo.setParameters(__omp_vars);//####[203]####
+        taskinfo.setMethod(__pt___ompParallelRegion_0__omp__parallelRegionVarHolderClass_Main0_method);//####[203]####
+        taskinfo.setInstance(this);//####[203]####
+        return TaskpoolFactory.getTaskpool().enqueueMulti(taskinfo, Pyjama.omp_get_num_threads() - 1);//####[203]####
+    }//####[203]####
+    public void __pt___ompParallelRegion_0(_omp__parallelRegionVarHolderClass_Main0 __omp_vars) {//####[203]####
+        {//####[205]####
+            if (Pyjama.insideParallelRegion()) //####[206]####
+            {//####[206]####
+                boolean _omp_imFirst = _imFirst_2.getAndSet(false);//####[208]####
+                _holderForPIFirst = _imFirst_2;//####[209]####
+                if (_omp_imFirst) //####[210]####
+                {//####[210]####
+                    _ompWorkSharedUserCode_Main2_variables_instance = new _ompWorkSharedUserCode_Main2_variables();//####[211]####
+                    int __omp_size_ = 0;//####[212]####
+                    for (int i = 0; i < XSD_NUMBER; i = i + 1) //####[214]####
+                    {//####[214]####
+                        _lastElement_2 = i;//####[215]####
+                        __omp_size_++;//####[216]####
+                    }//####[217]####
+                    _pi_2 = ParIteratorFactory.createParIterator(0, __omp_size_, 1, Pyjama.omp_get_num_threads(), ParIterator.Schedule.GUIDED, ParIterator.DEFAULT_CHUNKSIZE, false);//####[218]####
+                    _omp_piVarContainer.add(_pi_2);//####[219]####
+                    _pi_2.setThreadIdGenerator(new UniqueThreadIdGeneratorForOpenMP());//####[220]####
+                    _waitBarrier_2.countDown();//####[221]####
+                } else {//####[222]####
+                    try {//####[223]####
+                        _waitBarrier_2.await();//####[223]####
+                    } catch (InterruptedException __omp__ie) {//####[223]####
+                        __omp__ie.printStackTrace();//####[223]####
+                    }//####[223]####
+                }//####[224]####
+                _ompWorkSharedUserCode_Main2(_ompWorkSharedUserCode_Main2_variables_instance);//####[225]####
+                if (_imFinishedCounter_2.incrementAndGet() == PJPackageOnly.getThreadCountCurrentParallelRegion()) //####[226]####
+                {//####[226]####
+                    _waitBarrierAfter_2.countDown();//####[227]####
+                } else {//####[228]####
+                    try {//####[229]####
+                        _waitBarrierAfter_2.await();//####[230]####
+                    } catch (InterruptedException __omp__ie) {//####[231]####
+                        __omp__ie.printStackTrace();//####[232]####
+                    }//####[233]####
+                }//####[234]####
+            } else {//####[236]####
+                for (int i = 0; i < XSD_NUMBER; i = i + 1) //####[238]####
+                {//####[239]####
+                    Context.getOut().println("Validating " + instanceNames[i]);//####[240]####
+                    try {//####[241]####
+                        doValidationTests(loops[i], allInstanceBytes[i], schemaBoundValidator[i]);//####[242]####
+                    } catch (SAXException e) {//####[243]####
+                        e.printStackTrace();//####[244]####
+                    } catch (Exception e) {//####[245]####
+                        e.printStackTrace();//####[246]####
+                    }//####[247]####
+                }//####[248]####
+            }//####[249]####
+        }//####[251]####
+    }//####[253]####
+//####[253]####
+//####[254]####
+    private void doValidationTests(int loops, CachedFile file, Validator[] schemaValidator) throws ParserConfigurationException, IOException, SAXException {//####[254]####
+        {//####[254]####
+            if (loops < THREADSNUM) //####[255]####
+            {//####[256]####
+                for (int i = loops - 1; i >= 0; i--) //####[257]####
+                {//####[258]####
+                    validateSource(i, createDomSource(file), schemaValidator[i]);//####[259]####
+                    validateSource(i, createSaxSource(file), schemaValidator[i]);//####[260]####
+                }//####[261]####
+            } else {//####[262]####
+                int[] loopsForThread = new int[CHUNCK_NUM];//####[263]####
+                for (int i = 0; i < CHUNCK_NUM - 1; i++) //####[264]####
+                {//####[265]####
+                    loopsForThread[i] = loops / CHUNCK_NUM;//####[266]####
+                }//####[267]####
+                loopsForThread[CHUNCK_NUM - 1] = loops - (CHUNCK_NUM - 1) * loops / CHUNCK_NUM;//####[268]####
+                if (Pyjama.insideParallelRegion()) //####[270]####
+                {//####[270]####
+                    {//####[272]####
+                        for (int j = 0; j < CHUNCK_NUM; j = j + 1) //####[273]####
+                        {//####[274]####
+                            try {//####[275]####
+                                doValidationLoop(loopsForThread[j], file, schemaValidator[j]);//####[276]####
+                            } catch (SAXException e) {//####[277]####
+                                e.printStackTrace();//####[278]####
+                            } catch (Exception e) {//####[279]####
+                                e.printStackTrace();//####[280]####
+                            }//####[281]####
+                        }//####[282]####
+                    }//####[283]####
+                } else {//####[284]####
+                    PJPackageOnly.setThreadCountCurrentParallelRegion(Pyjama.omp_get_num_threads());//####[286]####
+                    _omp__parallelRegionVarHolderClass_Main3 _omp__parallelRegionVarHolderInstance_3 = new _omp__parallelRegionVarHolderClass_Main3();//####[289]####
+                    _omp__parallelRegionVarHolderInstance_3.file = file;//####[290]####
+                    _omp__parallelRegionVarHolderInstance_3.schemaValidator = schemaValidator;//####[291]####
+                    _omp__parallelRegionVarHolderInstance_3.loops = loops;//####[292]####
+                    _omp__parallelRegionVarHolderInstance_3.loopsForThread = loopsForThread;//####[293]####
+                    PJPackageOnly.setMasterThread(Thread.currentThread());//####[296]####
+                    TaskID _omp__parallelRegionTaskID_3 = _ompParallelRegion_3(_omp__parallelRegionVarHolderInstance_3);//####[297]####
+                    __pt___ompParallelRegion_3(_omp__parallelRegionVarHolderInstance_3);//####[298]####
+                    try {//####[299]####
+                        _omp__parallelRegionTaskID_3.waitTillFinished();//####[299]####
+                    } catch (Exception __pt__ex) {//####[299]####
+                        __pt__ex.printStackTrace();//####[299]####
+                    }//####[299]####
+                    PJPackageOnly.setMasterThread(null);//####[301]####
+                    _holderForPIFirst.set(true);//####[302]####
+                    file = _omp__parallelRegionVarHolderInstance_3.file;//####[304]####
+                    schemaValidator = _omp__parallelRegionVarHolderInstance_3.schemaValidator;//####[305]####
+                    loops = _omp__parallelRegionVarHolderInstance_3.loops;//####[306]####
+                    loopsForThread = _omp__parallelRegionVarHolderInstance_3.loopsForThread;//####[307]####
+                    PJPackageOnly.setThreadCountCurrentParallelRegion(1);//####[308]####
+                }//####[309]####
+            }//####[312]####
+        }//####[313]####
+    }//####[314]####
+//####[315]####
+    private AtomicBoolean _imFirst_5 = new AtomicBoolean(true);//####[315]####
+//####[316]####
+    private AtomicInteger _imFinishedCounter_5 = new AtomicInteger(0);//####[316]####
+//####[317]####
+    private CountDownLatch _waitBarrier_5 = new CountDownLatch(1);//####[317]####
+//####[318]####
+    private CountDownLatch _waitBarrierAfter_5 = new CountDownLatch(1);//####[318]####
+//####[319]####
+    private ParIterator<Integer> _pi_5 = null;//####[319]####
+//####[320]####
+    private Integer _lastElement_5 = null;//####[320]####
+//####[321]####
+    private _ompWorkSharedUserCode_Main5_variables _ompWorkSharedUserCode_Main5_variables_instance = null;//####[321]####
+//####[322]####
+    private void _ompWorkSharedUserCode_Main5(_ompWorkSharedUserCode_Main5_variables __omp_vars) {//####[322]####
+        CachedFile file = __omp_vars.file;//####[324]####
+        Validator[] schemaValidator = __omp_vars.schemaValidator;//####[325]####
+        int loops = __omp_vars.loops;//####[326]####
+        int[] loopsForThread = __omp_vars.loopsForThread;//####[327]####
+        Integer j;//####[328]####
+        while (_pi_5.hasNext()) //####[329]####
+        {//####[329]####
+            j = _pi_5.next();//####[330]####
+            {//####[332]####
+                try {//####[333]####
+                    doValidationLoop(loopsForThread[j], file, schemaValidator[j]);//####[334]####
+                } catch (SAXException e) {//####[335]####
+                    e.printStackTrace();//####[336]####
+                } catch (Exception e) {//####[337]####
+                    e.printStackTrace();//####[338]####
+                }//####[339]####
+            }//####[340]####
+        }//####[341]####
+        __omp_vars.file = file;//####[343]####
+        __omp_vars.schemaValidator = schemaValidator;//####[344]####
+        __omp_vars.loops = loops;//####[345]####
+        __omp_vars.loopsForThread = loopsForThread;//####[346]####
+    }//####[347]####
+//####[351]####
+    private static volatile Method __pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_method = null;//####[351]####
+    private synchronized static void __pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_ensureMethodVarSet() {//####[351]####
+        if (__pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_method == null) {//####[351]####
+            try {//####[351]####
+                __pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_method = ParaTaskHelper.getDeclaredMethod(new ParaTaskHelper.ClassGetter().getCurrentClass(), "__pt___ompParallelRegion_3", new Class[] {//####[351]####
+                    _omp__parallelRegionVarHolderClass_Main3.class//####[351]####
+                });//####[351]####
+            } catch (Exception e) {//####[351]####
+                e.printStackTrace();//####[351]####
+            }//####[351]####
+        }//####[351]####
+    }//####[351]####
+    private TaskIDGroup<Void> _ompParallelRegion_3(_omp__parallelRegionVarHolderClass_Main3 __omp_vars) {//####[351]####
+        //-- execute asynchronously by enqueuing onto the taskpool//####[351]####
+        return _ompParallelRegion_3(__omp_vars, new TaskInfo());//####[351]####
+    }//####[351]####
+    private TaskIDGroup<Void> _ompParallelRegion_3(_omp__parallelRegionVarHolderClass_Main3 __omp_vars, TaskInfo taskinfo) {//####[351]####
+        // ensure Method variable is set//####[351]####
+        if (__pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_method == null) {//####[351]####
+            __pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_ensureMethodVarSet();//####[351]####
+        }//####[351]####
+        taskinfo.setParameters(__omp_vars);//####[351]####
+        taskinfo.setMethod(__pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_method);//####[351]####
+        taskinfo.setInstance(this);//####[351]####
+        return TaskpoolFactory.getTaskpool().enqueueMulti(taskinfo, Pyjama.omp_get_num_threads() - 1);//####[351]####
+    }//####[351]####
+    private TaskIDGroup<Void> _ompParallelRegion_3(TaskID<_omp__parallelRegionVarHolderClass_Main3> __omp_vars) {//####[351]####
+        //-- execute asynchronously by enqueuing onto the taskpool//####[351]####
+        return _ompParallelRegion_3(__omp_vars, new TaskInfo());//####[351]####
+    }//####[351]####
+    private TaskIDGroup<Void> _ompParallelRegion_3(TaskID<_omp__parallelRegionVarHolderClass_Main3> __omp_vars, TaskInfo taskinfo) {//####[351]####
+        // ensure Method variable is set//####[351]####
+        if (__pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_method == null) {//####[351]####
+            __pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_ensureMethodVarSet();//####[351]####
+        }//####[351]####
+        taskinfo.setTaskIdArgIndexes(0);//####[351]####
+        taskinfo.addDependsOn(__omp_vars);//####[351]####
+        taskinfo.setParameters(__omp_vars);//####[351]####
+        taskinfo.setMethod(__pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_method);//####[351]####
+        taskinfo.setInstance(this);//####[351]####
+        return TaskpoolFactory.getTaskpool().enqueueMulti(taskinfo, Pyjama.omp_get_num_threads() - 1);//####[351]####
+    }//####[351]####
+    private TaskIDGroup<Void> _ompParallelRegion_3(BlockingQueue<_omp__parallelRegionVarHolderClass_Main3> __omp_vars) {//####[351]####
+        //-- execute asynchronously by enqueuing onto the taskpool//####[351]####
+        return _ompParallelRegion_3(__omp_vars, new TaskInfo());//####[351]####
+    }//####[351]####
+    private TaskIDGroup<Void> _ompParallelRegion_3(BlockingQueue<_omp__parallelRegionVarHolderClass_Main3> __omp_vars, TaskInfo taskinfo) {//####[351]####
+        // ensure Method variable is set//####[351]####
+        if (__pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_method == null) {//####[351]####
+            __pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_ensureMethodVarSet();//####[351]####
+        }//####[351]####
+        taskinfo.setQueueArgIndexes(0);//####[351]####
+        taskinfo.setIsPipeline(true);//####[351]####
+        taskinfo.setParameters(__omp_vars);//####[351]####
+        taskinfo.setMethod(__pt___ompParallelRegion_3__omp__parallelRegionVarHolderClass_Main3_method);//####[351]####
+        taskinfo.setInstance(this);//####[351]####
+        return TaskpoolFactory.getTaskpool().enqueueMulti(taskinfo, Pyjama.omp_get_num_threads() - 1);//####[351]####
+    }//####[351]####
+    public void __pt___ompParallelRegion_3(_omp__parallelRegionVarHolderClass_Main3 __omp_vars) {//####[351]####
+        CachedFile file = __omp_vars.file;//####[353]####
+        Validator[] schemaValidator = __omp_vars.schemaValidator;//####[354]####
+        int loops = __omp_vars.loops;//####[355]####
+        int[] loopsForThread = __omp_vars.loopsForThread;//####[356]####
+        {//####[357]####
+            if (Pyjama.insideParallelRegion()) //####[358]####
+            {//####[358]####
+                boolean _omp_imFirst = _imFirst_5.getAndSet(false);//####[360]####
+                _holderForPIFirst = _imFirst_5;//####[361]####
+                if (_omp_imFirst) //####[362]####
+                {//####[362]####
+                    _ompWorkSharedUserCode_Main5_variables_instance = new _ompWorkSharedUserCode_Main5_variables();//####[363]####
+                    int __omp_size_ = 0;//####[364]####
+                    for (int j = 0; j < CHUNCK_NUM; j = j + 1) //####[366]####
+                    {//####[366]####
+                        _lastElement_5 = j;//####[367]####
+                        __omp_size_++;//####[368]####
+                    }//####[369]####
+                    _pi_5 = ParIteratorFactory.createParIterator(0, __omp_size_, 1, Pyjama.omp_get_num_threads(), ParIterator.Schedule.GUIDED, ParIterator.DEFAULT_CHUNKSIZE, false);//####[370]####
+                    _omp_piVarContainer.add(_pi_5);//####[371]####
+                    _pi_5.setThreadIdGenerator(new UniqueThreadIdGeneratorForOpenMP());//####[372]####
+                    _ompWorkSharedUserCode_Main5_variables_instance.file = file;//####[373]####
+                    _ompWorkSharedUserCode_Main5_variables_instance.schemaValidator = schemaValidator;//####[374]####
+                    _ompWorkSharedUserCode_Main5_variables_instance.loops = loops;//####[375]####
+                    _ompWorkSharedUserCode_Main5_variables_instance.loopsForThread = loopsForThread;//####[376]####
+                    _waitBarrier_5.countDown();//####[377]####
+                } else {//####[378]####
+                    try {//####[379]####
+                        _waitBarrier_5.await();//####[379]####
+                    } catch (InterruptedException __omp__ie) {//####[379]####
+                        __omp__ie.printStackTrace();//####[379]####
+                    }//####[379]####
+                }//####[380]####
+                _ompWorkSharedUserCode_Main5(_ompWorkSharedUserCode_Main5_variables_instance);//####[381]####
+                if (_imFinishedCounter_5.incrementAndGet() == PJPackageOnly.getThreadCountCurrentParallelRegion()) //####[382]####
+                {//####[382]####
+                    _waitBarrierAfter_5.countDown();//####[383]####
+                } else {//####[384]####
+                    try {//####[385]####
+                        _waitBarrierAfter_5.await();//####[386]####
+                    } catch (InterruptedException __omp__ie) {//####[387]####
+                        __omp__ie.printStackTrace();//####[388]####
+                    }//####[389]####
+                }//####[390]####
+            } else {//####[392]####
+                for (int j = 0; j < CHUNCK_NUM; j = j + 1) //####[394]####
+                {//####[395]####
+                    try {//####[396]####
+                        doValidationLoop(__omp_vars.loopsForThread[j], __omp_vars.file, __omp_vars.schemaValidator[j]);//####[397]####
+                    } catch (SAXException e) {//####[398]####
+                        e.printStackTrace();//####[399]####
+                    } catch (Exception e) {//####[400]####
+                        e.printStackTrace();//####[401]####
+                    }//####[402]####
+                }//####[403]####
+            }//####[404]####
+        }//####[406]####
+        __omp_vars.file = file;//####[408]####
+        __omp_vars.schemaValidator = schemaValidator;//####[409]####
+        __omp_vars.loops = loops;//####[410]####
+        __omp_vars.loopsForThread = loopsForThread;//####[411]####
+    }//####[412]####
+//####[412]####
+//####[413]####
+    private void doValidationLoop(int loop, CachedFile file, Validator schemaValidator) throws ParserConfigurationException, IOException, SAXException {//####[413]####
+        {//####[413]####
+            for (int i = loop - 1; i >= 0; i--) //####[414]####
+            {//####[415]####
+                try {//####[416]####
+                    validateSource(i, createDomSource(file), schemaValidator);//####[417]####
+                    validateSource(i, createSaxSource(file), schemaValidator);//####[418]####
+                } catch (SAXException e) {//####[419]####
+                    e.printStackTrace();//####[420]####
+                } catch (Exception e) {//####[421]####
+                    e.printStackTrace();//####[422]####
+                }//####[423]####
+            }//####[424]####
+        }//####[425]####
+    }//####[426]####
+//####[428]####
+    private void validateSource(int loop, Source source, Validator schemaValidator) {//####[428]####
+        {//####[428]####
+            schemaValidator.reset();//####[429]####
+            schemaValidator.setErrorHandler(null);//####[430]####
+            try {//####[431]####
+                schemaValidator.validate(source);//####[432]####
+            } catch (SAXException e) {//####[433]####
+                Context.getOut().print("\tas " + source.getClass().getName());//####[434]####
+                Context.getOut().println(" failed. (Incorrect result)" + Arrays.toString(loops));//####[435]####
+                e.printStackTrace(Context.getOut());//####[436]####
+            } catch (IOException e) {//####[437]####
+                Context.getOut().println("Unable to validate due to IOException.");//####[438]####
+            }//####[439]####
+        }//####[440]####
+    }//####[441]####
+}//####[441]####
